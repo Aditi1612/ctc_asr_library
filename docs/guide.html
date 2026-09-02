@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ctc_asr — User Guide</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 18mm 18mm;
+    @bottom-center {
+      content: "ctc_asr user guide  ·  page " counter(page) " / " counter(pages);
+      font: 8pt "Helvetica Neue", Arial, sans-serif;
+      color: #999;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font: 10.5pt/1.5 "Helvetica Neue", Arial, sans-serif;
+    color: #1a1a1a;
+    margin: 0;
+  }
+  h1 { font-size: 22pt; margin: 0 0 2pt; letter-spacing: -0.3pt; }
+  h2 {
+    font-size: 13pt; margin: 22pt 0 6pt; padding-bottom: 3pt;
+    border-bottom: 1.5pt solid #222; letter-spacing: -0.2pt;
+    break-after: avoid;
+  }
+  h3 { font-size: 10.5pt; margin: 12pt 0 4pt; break-after: avoid; }
+  p { margin: 4pt 0; }
+  .lede { color: #555; font-size: 11pt; margin-bottom: 4pt; }
+  code {
+    font-family: "SF Mono", "DejaVu Sans Mono", Consolas, monospace;
+    font-size: 9pt;
+    background: #f2f2f2;
+    padding: 0.5pt 3pt;
+    border-radius: 2pt;
+  }
+  pre {
+    background: #1e1e21;
+    color: #e8e8e8;
+    padding: 9pt 11pt;
+    border-radius: 4pt;
+    font-family: "SF Mono", "DejaVu Sans Mono", Consolas, monospace;
+    font-size: 8.5pt;
+    line-height: 1.45;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    break-inside: avoid;
+    margin: 6pt 0;
+  }
+  pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+  .cmt { color: #8a8a8a; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 9pt;
+    margin: 6pt 0;
+    break-inside: avoid;
+  }
+  th, td {
+    border: 0.75pt solid #ccc;
+    padding: 4pt 7pt;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f0f0f0; font-weight: 600; }
+  .note {
+    background: #f6f8fa;
+    border-left: 3pt solid #999;
+    padding: 6pt 10pt;
+    margin: 8pt 0;
+    font-size: 9.5pt;
+    break-inside: avoid;
+  }
+  .warn { border-left-color: #c9821b; background: #fff8ef; }
+  ul, ol { margin: 4pt 0; padding-left: 18pt; }
+  li { margin: 2pt 0; }
+  a { color: #1a4fb4; text-decoration: none; }
+  .kv { color: #555; font-size: 9pt; margin-top: 2pt; }
+  .pagebreak { break-before: page; }
+  header.title { margin-bottom: 14pt; }
+</style>
+</head>
+<body>
+
+<header class="title">
+  <h1>ctc_asr</h1>
+  <p class="lede">In-process Korean speech-to-text (fine-tuned Wav2Vec2-CTC), with near-real-time streaming.</p>
+  <p class="kv">GitHub: <a href="https://github.com/Aditi1612/ctc_asr_library">github.com/Aditi1612/ctc_asr_library</a>
+     &nbsp;·&nbsp; Model: <a href="https://huggingface.co/fluffy16/ctc-asr-ko">huggingface.co/fluffy16/ctc-asr-ko</a>
+     &nbsp;·&nbsp; v0.1.0</p>
+</header>
+
+<h2>What it is</h2>
+<p>
+  A Python library that runs the Korean ASR model <strong>directly inside your
+  application</strong> — no HTTP server, no calling an API endpoint. You load the
+  model once and call a function.
+</p>
+<ul>
+  <li><strong>One-shot</strong>: give it an audio file or waveform, get the transcript back.</li>
+  <li><strong>Streaming</strong>: push microphone frames continuously; get a transcript
+      for each utterance when the speaker pauses (voice-activity segmented).</li>
+</ul>
+<p>
+  The decode path (audio normalization, jamo normalization, Hangul composition,
+  CTC decoding) is identical to the production API, so output matches.
+</p>
+
+<h2>Requirements</h2>
+<table>
+  <tr><th>Component</th><th>Notes</th></tr>
+  <tr><td>Python</td><td>3.9 or newer</td></tr>
+  <tr><td><code>torch</code>, <code>torchaudio</code></td>
+      <td>Install the build that matches your machine (CUDA or CPU) <em>first</em>. These are large and hardware-specific.</td></tr>
+  <tr><td>GPU</td><td>Optional. CUDA gives ~25&nbsp;ms per clip; CPU works fine (~0.04&nbsp;s per second of audio).</td></tr>
+  <tr><td>Disk</td><td>~1.3&nbsp;GB for the model, downloaded once and cached in <code>~/.cache/huggingface</code>.</td></tr>
+</table>
+
+<h2>Installation</h2>
+<pre><code><span class="cmt"># 1. install torch for your hardware (example: CUDA 12.1)</span>
+pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+<span class="cmt">#    ...or CPU-only:</span>
+pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+<span class="cmt"># 2. install the library (public GitHub repo)</span>
+pip install "ctc-asr[hub] @ git+https://github.com/Aditi1612/ctc_asr_library.git"</code></pre>
+
+<p>Optional extras:</p>
+<table>
+  <tr><th>Extra</th><th>Adds</th></tr>
+  <tr><td><code>[hub]</code></td><td>download the model from Hugging Face Hub (recommended)</td></tr>
+  <tr><td><code>[vad]</code></td><td><code>webrtcvad</code> — sharper speech detection than the built-in energy fallback</td></tr>
+  <tr><td><code>[mic]</code></td><td><code>sounddevice</code> — only needed to run the microphone demo</td></tr>
+</table>
+
+<h2>Quick start — one-shot</h2>
+<pre><code>from ctc_asr import Transcriber
+
+asr = Transcriber(hf_repo="fluffy16/ctc-asr-ko")   <span class="cmt"># ~1.2 GB download on first run, then cached</span>
+
+print(asr.transcribe("clip.wav"))                  <span class="cmt"># -> "카촉틀과 토이띠차 내뒤에 안자쩌요"</span>
+
+<span class="cmt"># raw waveform instead of a file (mono float32):</span>
+import soundfile as sf
+wav, sr = sf.read("clip.wav", dtype="float32")
+print(asr.transcribe(wav, input_sr=sr))
+
+<span class="cmt"># full detail (raw text, CER if you pass reference_text, timing):</span>
+asr.transcribe("clip.wav", detailed=True)</code></pre>
+<p>
+  Accepts a file path, encoded bytes (<code>wav/flac/ogg</code>, plus
+  <code>mp3/m4a</code> when ffmpeg is present), or a numpy / torch waveform.
+</p>
+
+<h2>Streaming (near real-time)</h2>
+<p>
+  Your app captures audio from anywhere and pushes mono float32 chunks of any
+  length. Each time the speaker pauses, the buffered utterance is transcribed and
+  returned. There are no partial hypotheses — a full transcript per utterance.
+</p>
+<pre><code>from ctc_asr import Transcriber
+
+asr = Transcriber(hf_repo="fluffy16/ctc-asr-ko")
+stream = asr.stream(on_segment=lambda s: print(f"[{s.start_time:.1f}s] {s.text}"))
+
+for chunk in your_mic_source():                 <span class="cmt"># e.g. 20-100 ms blocks, any sample rate</span>
+    for seg in stream.accept(chunk, input_sr=48000):   <span class="cmt"># resampled internally if needed</span>
+        handle(seg.text, seg.start_time, seg.end_time)
+
+last = stream.flush()                            <span class="cmt"># finalize trailing speech when the stream ends</span></code></pre>
+<p>
+  <code>accept()</code> returns a list of finalized <code>Segment</code> objects —
+  usually empty, one when an utterance just ended. It never blocks waiting for the
+  microphone; the model only runs when a pause is detected.
+</p>
+
+<h3>Tuning <code>asr.stream(...)</code></h3>
+<table>
+  <tr><th>Argument</th><th>Default</th><th>Meaning</th></tr>
+  <tr><td><code>end_silence_ms</code></td><td>600</td><td>pause length that ends an utterance — this is roughly your perceived latency</td></tr>
+  <tr><td><code>min_speech_ms</code></td><td>250</td><td>utterances shorter than this are dropped as noise</td></tr>
+  <tr><td><code>max_speech_ms</code></td><td>15000</td><td>force-cut a segment that never pauses</td></tr>
+  <tr><td><code>start_speech_frames</code></td><td>3</td><td>consecutive speech frames needed to start capturing</td></tr>
+  <tr><td><code>pre_roll_ms</code></td><td>200</td><td>audio kept from just before the trigger, so onsets aren&rsquo;t clipped</td></tr>
+  <tr><td><code>vad_aggressiveness</code></td><td>2</td><td>webrtcvad strictness 0&ndash;3 (higher = more aggressive about calling things non-speech)</td></tr>
+</table>
+
+<h2>Where the model comes from</h2>
+<p>Resolution priority: explicit paths &rarr; Hugging Face repo &rarr; local sibling checkout.</p>
+<table>
+  <tr><th>Source</th><th>How</th></tr>
+  <tr><td>Hugging Face Hub</td><td><code>Transcriber(hf_repo="fluffy16/ctc-asr-ko")</code> &nbsp;or&nbsp; <code>export CTC_HF_REPO=fluffy16/ctc-asr-ko</code></td></tr>
+  <tr><td>Local files</td><td><code>Transcriber(model_dir="/path/checkpoint", vocab_path="/path/vocab.json")</code> &nbsp;or&nbsp; <code>CTC_MODEL_DIR</code> / <code>CTC_VOCAB_PATH</code></td></tr>
+  <tr><td>Pin a version</td><td><code>Transcriber(hf_repo="fluffy16/ctc-asr-ko", hf_revision="&lt;commit-sha&gt;")</code></td></tr>
+</table>
+<div class="note">
+  The Hugging Face model repo is currently <strong>public</strong> — no token
+  needed. If it is switched to private later, each user runs
+  <code>huggingface-cli login</code> once (or sets <code>HF_TOKEN</code>) and is
+  added as a collaborator.
+</div>
+
+<h2>Performance (measured on the sample set)</h2>
+<p>Times are for the <code>transcribe()</code> call only, with the model already loaded.</p>
+<table>
+  <tr><th>Audio length</th><th>GPU (CUDA)</th><th>CPU</th></tr>
+  <tr><td>2 s</td><td>0.012 s</td><td>0.11 s</td></tr>
+  <tr><td>5 s</td><td>0.025 s</td><td>0.20 s</td></tr>
+  <tr><td>14 s</td><td>0.026 s</td><td>0.62 s</td></tr>
+  <tr><td>22 s</td><td>0.034 s</td><td>0.83 s</td></tr>
+</table>
+<ul>
+  <li><strong>GPU</strong>: ~25 ms regardless of clip length (real-time factor ≈ 0.003).</li>
+  <li><strong>CPU</strong>: ~0.04 s per second of audio, scales linearly (RTF ≈ 0.04).</li>
+  <li><strong>Model load into memory</strong>: ~0.4 s, once, at <code>Transcriber(...)</code>.</li>
+  <li><strong>First download from Hugging Face</strong>: ~1.2 GB — network-dependent, then cached permanently.</li>
+</ul>
+
+<h2>Limitations</h2>
+<ul>
+  <li>The model transcribes whole utterances — there is no word-by-word live
+      output. &ldquo;Real-time&rdquo; means the transcript appears shortly after each pause.</li>
+  <li>Segmenting on silence can split a word at the boundary, so a long sentence
+      spoken without pauses transcribes slightly differently than the same audio
+      sent as one clip.</li>
+  <li>One <code>Transcriber</code> runs a single inference at a time. For
+      parallelism, use one instance per worker thread / process.</li>
+  <li>Korean output only; the model is fine-tuned for dysarthric / atypical speech.</li>
+</ul>
+
+<h2>Updating</h2>
+<table>
+  <tr><th>When</th><th>Maintainer does</th><th>Users do</th></tr>
+  <tr><td>Library code changes</td><td><code>git push</code> to the GitHub repo</td>
+      <td><code>pip install --upgrade "git+https://github.com/Aditi1612/ctc_asr_library.git"</code></td></tr>
+  <tr><td>Model checkpoint changes</td><td>re-run the Hugging Face upload script</td>
+      <td>nothing — next run pulls the new snapshot (unless <code>hf_revision</code> is pinned)</td></tr>
+</table>
+
+<h2>Troubleshooting</h2>
+<table>
+  <tr><th>Symptom</th><th>Fix</th></tr>
+  <tr><td><code>No checkpoint found</code></td><td>pass <code>hf_repo=</code> / <code>model_dir=</code>, or set <code>CTC_HF_REPO</code></td></tr>
+  <tr><td><code>Hugging Face Hub support needs 'huggingface_hub'</code></td><td>install with the <code>[hub]</code> extra</td></tr>
+  <tr><td>VAD backend is <code>energy</code>, detection is rough</td><td><code>pip install webrtcvad</code></td></tr>
+  <tr><td>mp3 / m4a files fail to decode</td><td>install ffmpeg on the system</td></tr>
+  <tr><td>CUDA out of memory</td><td><code>Transcriber(force_cpu=True)</code></td></tr>
+</table>
+
+</body>
+</html>
