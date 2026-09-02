@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ctc-asr"
+version = "0.1.0"
+description = "In-process Korean ASR (fine-tuned Wav2Vec2-CTC) with VAD-segmented streaming"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "torch",
+    "torchaudio",
+    "transformers>=4.30",
+    "soundfile",
+    "numpy",
+]
+
+[project.optional-dependencies]
+hub = ["huggingface_hub>=0.20"]
+vad = ["webrtcvad"]
+mic = ["sounddevice"]
+dev = ["pytest", "huggingface_hub>=0.20"]
+
+[tool.setuptools]
+packages = ["ctc_asr"]
