@@ -23,7 +23,7 @@ wheel:
 
 ```bash
 # from a git remote
-pip install "ctc-asr[hub] @ git+https://github.com/<you>/ctc_asr_library.git"
+pip install "ctc-asr[hub] @ git+https://github.com/Aditi1612/ctc_asr_library.git"
 
 # or build a wheel and hand over the file
 pip install build && python -m build          # -> dist/ctc_asr-0.1.0-*.whl
@@ -42,31 +42,39 @@ The checkpoint (~1.2 GB) is **not** in the package. Choose a source:
 
 ### A. Hugging Face Hub (recommended for distribution)
 
-One-time upload from this server:
-
-```bash
-huggingface-cli login          # or: export HF_TOKEN=hf_xxx
-python examples/upload_to_hf.py <you>/ctc-asr-ko \
-  /data2/irfan/projects/APIs/service_ctc/transcribe_bundle/checkpoint \
-  /data2/irfan/projects/APIs/service_ctc/transcribe_bundle/vocab.json
-```
-
-That creates a **private** model repo with just the files the engine needs
-(`checkpoint/config.json`, `checkpoint/model.safetensors`,
-`checkpoint/preprocessor_config.json`, `vocab.json`).
-
-Then, on any machine (with `pip install 'ctc-asr[hub]'`):
+The checkpoint is published to the **gated** model repo
+[`fluffy16/ctc-asr-ko`](https://huggingface.co/fluffy16/ctc-asr-ko), with just
+the files the engine needs (`checkpoint/config.json`,
+`checkpoint/model.safetensors`, `checkpoint/preprocessor_config.json`,
+`vocab.json`). On any machine (with `pip install 'ctc-asr[hub]'`):
 
 ```python
 from ctc_asr import Transcriber
-asr = Transcriber(hf_repo="<you>/ctc-asr-ko")     # downloads + caches on first use
+asr = Transcriber(hf_repo="fluffy16/ctc-asr-ko")   # downloads + caches on first use
 ```
 
-Auth for a private repo — any one of:
-`huggingface-cli login`, `export HF_TOKEN=hf_xxx`, or `Transcriber(hf_repo=..., hf_token="hf_xxx")`.
-Grant each teammate read access to the repo.
+Env-var form (no code change): `export CTC_HF_REPO=fluffy16/ctc-asr-ko`.
 
-Env-var form (no code change): `export CTC_HF_REPO=<you>/ctc-asr-ko`.
+Anyone can see the repo, but downloading the weights requires approval:
+
+1. Sign in to Hugging Face, open the model page, and click **Request access**.
+2. Wait for the owner to approve the request.
+3. Authenticate as that account, in any one of these ways:
+   `huggingface-cli login`, `export HF_TOKEN=hf_xxx`, or
+   `Transcriber(hf_repo=..., hf_token="hf_xxx")`.
+
+Without approval, or without a token, the download fails with `GatedRepoError`.
+The owner reviews pending requests on the model page, under
+**Settings → Gated user access**.
+
+To publish a new checkpoint (run once, from this server):
+
+```bash
+huggingface-cli login          # or: export HF_TOKEN=hf_xxx
+python examples/upload_to_hf.py fluffy16/ctc-asr-ko \
+  /data2/irfan/projects/APIs/service_ctc/transcribe_bundle/checkpoint \
+  /data2/irfan/projects/APIs/service_ctc/transcribe_bundle/vocab.json
+```
 
 ### B. Local files
 

@@ -72,6 +72,7 @@
     font-size: 9.5pt;
     break-inside: avoid;
   }
+  .warn { border-left-color: #c9821b; background: #fff8ef; }
   ul, ol { margin: 4pt 0; padding-left: 18pt; }
   li { margin: 2pt 0; }
   a { color: #1a4fb4; text-decoration: none; }
@@ -85,7 +86,7 @@
   <h1>ctc_asr</h1>
   <p class="lede">애플리케이션 내에서 바로 동작하는 한국어 음성 인식 라이브러리 (fine-tuned Wav2Vec2-CTC), 준실시간 스트리밍 지원.</p>
   <p class="kv">GitHub: <a href="https://github.com/Aditi1612/ctc_asr_library">github.com/Aditi1612/ctc_asr_library</a>
-     &nbsp;·&nbsp; 모델: <a href="https://huggingface.co/fluffy16/ctc-asr-ko">huggingface.co/fluffy16/ctc-asr-ko</a>
+     &nbsp;·&nbsp; 모델: <a href="https://huggingface.co/fluffy16/ctc-asr-ko">huggingface.co/fluffy16/ctc-asr-ko</a> (승인제)
      &nbsp;·&nbsp; v0.1.0</p>
 </header>
 
@@ -122,7 +123,10 @@ pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
 pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 
 <span class="cmt"># 2. 라이브러리 설치 (공개 GitHub 저장소)</span>
-pip install "ctc-asr[hub] @ git+https://github.com/Aditi1612/ctc_asr_library.git"</code></pre>
+pip install "ctc-asr[hub] @ git+https://github.com/Aditi1612/ctc_asr_library.git"
+
+<span class="cmt"># 3. Hugging Face 로그인 (모델 저장소는 승인제, "모델을 가져오는 위치" 참고)</span>
+huggingface-cli login                 <span class="cmt"># HF Read 토큰 붙여 넣기, 또는: export HF_TOKEN=hf_...</span></code></pre>
 
 <p>선택적 extras:</p>
 <table>
@@ -191,11 +195,22 @@ last = stream.flush()                            <span class="cmt"># 스트림 �
   <tr><td>Hugging Face Hub</td><td><code>Transcriber(hf_repo="fluffy16/ctc-asr-ko")</code> &nbsp;또는&nbsp; <code>export CTC_HF_REPO=fluffy16/ctc-asr-ko</code></td></tr>
   <tr><td>로컬 파일</td><td><code>Transcriber(model_dir="/path/checkpoint", vocab_path="/path/vocab.json")</code> &nbsp;또는&nbsp; <code>CTC_MODEL_DIR</code> / <code>CTC_VOCAB_PATH</code></td></tr>
   <tr><td>버전 고정</td><td><code>Transcriber(hf_repo="fluffy16/ctc-asr-ko", hf_revision="&lt;commit-sha&gt;")</code></td></tr>
+  <tr><td>코드에서 토큰 전달</td><td><code>Transcriber(hf_repo=..., hf_token="hf_...")</code> (<code>huggingface-cli login</code> 대신 사용 가능)</td></tr>
 </table>
-<div class="note">
-  현재 Hugging Face 모델 저장소는 <strong>공개(public)</strong> 상태라 토큰이 필요 없습니다.
-  이후 비공개로 전환되면, 각 사용자는 <code>huggingface-cli login</code>을 1회 실행하거나
-  <code>HF_TOKEN</code>을 설정하고, 저장소 협업자로 추가되어야 합니다.
+<div class="note warn">
+  Hugging Face 모델 저장소는 <strong>승인제(gated)</strong>입니다. 누구나 저장소를 볼 수
+  있지만, 승인된 계정만 가중치를 다운로드할 수 있습니다.
+  <ol>
+    <li>huggingface.co에 로그인한 뒤
+        <a href="https://huggingface.co/fluffy16/ctc-asr-ko">fluffy16/ctc-asr-ko</a>를 열고
+        <strong>Request access</strong>를 클릭합니다. 관리자가 이미 계정을 추가해 둔 경우에는
+        이 단계를 건너뜁니다.</li>
+    <li>승인을 기다립니다.</li>
+    <li><a href="https://huggingface.co/settings/tokens">huggingface.co/settings/tokens</a>에서
+        <strong>Read</strong> 토큰을 만든 뒤 <code>huggingface-cli login</code>을 실행하거나
+        <code>HF_TOKEN</code>을 설정합니다.</li>
+  </ol>
+  토큰은 비밀번호처럼 다루고 git에 커밋하지 마세요.
 </div>
 
 <h2>성능 (샘플 세트 측정값)</h2>
@@ -237,6 +252,7 @@ last = stream.flush()                            <span class="cmt"># 스트림 �
 <h2>문제 해결</h2>
 <table>
   <tr><th>증상</th><th>해결</th></tr>
+  <tr><td>다운로드 시 <code>GatedRepoError</code> 또는 <code>401</code></td><td>접근이 아직 승인되지 않았거나 토큰이 설정되지 않았습니다. 모델 페이지를 확인한 뒤 <code>huggingface-cli login</code>을 실행하거나 <code>HF_TOKEN</code>을 설정하세요.</td></tr>
   <tr><td><code>No checkpoint found</code></td><td><code>hf_repo=</code> / <code>model_dir=</code>를 전달하거나 <code>CTC_HF_REPO</code>를 설정</td></tr>
   <tr><td><code>Hugging Face Hub support needs 'huggingface_hub'</code></td><td><code>[hub]</code> extra로 설치</td></tr>
   <tr><td>VAD 백엔드가 <code>energy</code>이고 검출이 거침</td><td><code>pip install webrtcvad</code></td></tr>

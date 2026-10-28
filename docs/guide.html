@@ -88,7 +88,7 @@
   <h1>ctc_asr</h1>
   <p class="lede">In-process Korean speech-to-text (fine-tuned Wav2Vec2-CTC), with near-real-time streaming.</p>
   <p class="kv">GitHub: <a href="https://github.com/Aditi1612/ctc_asr_library">github.com/Aditi1612/ctc_asr_library</a>
-     &nbsp;·&nbsp; Model: <a href="https://huggingface.co/fluffy16/ctc-asr-ko">huggingface.co/fluffy16/ctc-asr-ko</a>
+     &nbsp;·&nbsp; Model: <a href="https://huggingface.co/fluffy16/ctc-asr-ko">huggingface.co/fluffy16/ctc-asr-ko</a> (gated)
      &nbsp;·&nbsp; v0.1.0</p>
 </header>
 
@@ -125,7 +125,10 @@ pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
 pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 
 <span class="cmt"># 2. install the library (public GitHub repo)</span>
-pip install "ctc-asr[hub] @ git+https://github.com/Aditi1612/ctc_asr_library.git"</code></pre>
+pip install "ctc-asr[hub] @ git+https://github.com/Aditi1612/ctc_asr_library.git"
+
+<span class="cmt"># 3. Hugging Face login (the model repo is gated; see "Where the model comes from")</span>
+huggingface-cli login                 <span class="cmt"># paste your HF Read token, or: export HF_TOKEN=hf_...</span></code></pre>
 
 <p>Optional extras:</p>
 <table>
@@ -194,12 +197,22 @@ last = stream.flush()                            <span class="cmt"># finalize tr
   <tr><td>Hugging Face Hub</td><td><code>Transcriber(hf_repo="fluffy16/ctc-asr-ko")</code> &nbsp;or&nbsp; <code>export CTC_HF_REPO=fluffy16/ctc-asr-ko</code></td></tr>
   <tr><td>Local files</td><td><code>Transcriber(model_dir="/path/checkpoint", vocab_path="/path/vocab.json")</code> &nbsp;or&nbsp; <code>CTC_MODEL_DIR</code> / <code>CTC_VOCAB_PATH</code></td></tr>
   <tr><td>Pin a version</td><td><code>Transcriber(hf_repo="fluffy16/ctc-asr-ko", hf_revision="&lt;commit-sha&gt;")</code></td></tr>
+  <tr><td>Token in code</td><td><code>Transcriber(hf_repo=..., hf_token="hf_...")</code> (an alternative to <code>huggingface-cli login</code>)</td></tr>
 </table>
-<div class="note">
-  The Hugging Face model repo is currently <strong>public</strong> — no token
-  needed. If it is switched to private later, each user runs
-  <code>huggingface-cli login</code> once (or sets <code>HF_TOKEN</code>) and is
-  added as a collaborator.
+<div class="note warn">
+  The Hugging Face model repo is <strong>gated</strong>: anyone can see it, but
+  only approved accounts can download the weights.
+  <ol>
+    <li>Sign in at huggingface.co, open
+        <a href="https://huggingface.co/fluffy16/ctc-asr-ko">fluffy16/ctc-asr-ko</a>
+        and click <strong>Request access</strong>. Skip this step if the
+        maintainer has already added your account.</li>
+    <li>Wait for approval.</li>
+    <li>Create a <strong>Read</strong> token at
+        <a href="https://huggingface.co/settings/tokens">huggingface.co/settings/tokens</a>,
+        then run <code>huggingface-cli login</code> or set <code>HF_TOKEN</code>.</li>
+  </ol>
+  Treat the token as a password; don't commit it to git.
 </div>
 
 <h2>Performance (measured on the sample set)</h2>
@@ -242,6 +255,7 @@ last = stream.flush()                            <span class="cmt"># finalize tr
 <h2>Troubleshooting</h2>
 <table>
   <tr><th>Symptom</th><th>Fix</th></tr>
+  <tr><td><code>GatedRepoError</code> or <code>401</code> when downloading</td><td>Your access hasn't been approved yet, or no token is set. Check the model page, then run <code>huggingface-cli login</code> or set <code>HF_TOKEN</code>.</td></tr>
   <tr><td><code>No checkpoint found</code></td><td>pass <code>hf_repo=</code> / <code>model_dir=</code>, or set <code>CTC_HF_REPO</code></td></tr>
   <tr><td><code>Hugging Face Hub support needs 'huggingface_hub'</code></td><td>install with the <code>[hub]</code> extra</td></tr>
   <tr><td>VAD backend is <code>energy</code>, detection is rough</td><td><code>pip install webrtcvad</code></td></tr>
